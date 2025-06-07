@@ -83,7 +83,7 @@
                     document.getElementById('temperature').textContent = `Temperature: ${weatherData.temperature}`;
                     document.getElementById('day-night').textContent = `Time of day: ${weatherData.is_day_time ? 'Day' : 'Night'}`;
                     document.getElementById('music-mood-display').textContent = `Suggested Music Mood: ${weatherData.music_mood}`;
-                    console.log(music_mood)
+                    console.log(weatherData.music_mood)
                     // Now, use the music_mood to get song suggestions
                     const songResponse = await fetch('/get_songs', {
                         method: 'POST',

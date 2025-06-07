@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import pandas as pd
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
+import json
 
 load_dotenv() # Load env variables from .env file
 
@@ -115,8 +116,6 @@ def get_music_mood_from_weather(weather_text, temperature):
     try:
         MAPPINGS_DF = get_mood_mappings()
 
-        print(MAPPINGS_DF.dtypes)
-
         weather_text = weather_text.lower()
         
         match = MAPPINGS_DF[
@@ -143,20 +142,26 @@ def get_music_mood_from_weather(weather_text, temperature):
     except Exception as e:
         raise Exception(f"Error in {get_music_mood_from_weather.__name__}: {e}")
 
+
 @app.route('/get_songs', methods=['POST'])
 def get_songs():
-    print("hello")
+    print("DEBUG: Entered /get_songs route.") # Added DEBUG prefix for clarity
     mood = request.form.get('mood')
-    print(mood)
+    print(f"DEBUG: Received mood: '{mood}'") # Added DEBUG prefix for clarity
     if not mood:
+        print("DEBUG: Mood is empty or None, returning 400.") # Added DEBUG prefix
         return jsonify({"error": "Music mood is required."}), 400
     
     try:
-        results = sp.search(q=mood, type='track', limit=5)
-        print(f"Result: {results}")
+        # The 'type' parameter here correctly specifies 'track' (singular) for the search
+        results = sp.search(q=mood, type='track', limit=5) 
+        
+        # Print the full result to see its structure if you are still unsure
+        # print(f"DEBUG: Spotify Search Result: {results}") 
 
         songs = []
-        for track in results['track']['items']: 
+        # >>> IMPORTANT FIX HERE: Use 'tracks' (plural) for accessing the items <<<
+        for track in results['tracks']['items']: 
             artists = ', '.join([artist['name'] for artist in track['artists']])
             songs.append({
                 'title': track['name'],
@@ -167,8 +172,11 @@ def get_songs():
         return jsonify({'songs': songs})
 
     except spotipy.exceptions.SpotifyException as e:
+        print(f"Spotify API error in get_songs: {e}") # Print error for debugging
         return jsonify({"error": f"Spotify API error: {e}"}), 500
     except Exception as e:
+        # This will now catch the KeyError and print it
+        print(f"Unexpected error in get_songs: {e}") 
         return jsonify({"error": f"An unexpected error occurred: {e}"}), 500
     
 if __name__ == '__main__':

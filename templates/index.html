@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Music Player</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .container { background-color: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
+        h1 { text-align: center; color: #333; }
+        form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        input[type="text"] { padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 44px; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #0056b3; }
+        .results-section { margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px; }
+        .results-section p, .results-section h2 { margin: 5px 0; }
+        .error { color: red; }
+        ul { list-style: none; padding: 0; }
+        li { margin-bottom: 10px; background-color: #f9f9f9; padding: 10px; border-radius: 4px; }
+        li a { text-decoration: none; color: #007bff; font-weight: bold; }
+        li a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Weather Music Player</h1>
+        <form id="weather-form">
+            <label for="city">Enter City:</label>
+            <input type="text" id="city" name="city" placeholder="e.g., London" required>
+            <button type="submit">Get Weather & Songs</button>
+        </form>
+
+        <div id="weather-results" class="results-section">
+            <h2>Current Weather:</h2>
+            <p id="city-display"></p>
+            <p id="weather-text"></p>
+            <p id="temperature"></p>
+            <p id="day-night"></p>
+            <p id="music-mood-display"></p>
+        </div>
+
+        <div id="song-suggestions" class="results-section">
+            <h2>Suggested Songs:</h2>
+            <ul id="song-list">
+                </ul>
+        </div>
+        <p id="error-message" class="error"></p>
+    </div>
+
+    <script>
+        document.getElementById('weather-form').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const city = document.getElementById('city').value;
+            const errorMessage = document.getElementById('error-message');
+            errorMessage.textContent = ''; // Clear previous errors
+
+            // Clear previous data
+            document.getElementById('city-display').textContent = '';
+            document.getElementById('weather-text').textContent = '';
+            document.getElementById('temperature').textContent = '';
+            document.getElementById('day-night').textContent = '';
+            document.getElementById('music-mood-display').textContent = '';
+            document.getElementById('song-list').innerHTML = ''; // Clear song list
+
+            console.log("meow")
+
+            try {
+                // First, get weather data
+                const weatherResponse = await fetch('/get_weather', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `city=${encodeURIComponent(city)}`
+                });
+
+                const weatherData = await weatherResponse.json();
+
+                if (weatherResponse.ok) {
+                    document.getElementById('city-display').textContent = `City: ${weatherData.city}`;
+                    document.getElementById('weather-text').textContent = `Conditions: ${weatherData.weather_text}`;
+                    document.getElementById('temperature').textContent = `Temperature: ${weatherData.temperature}`;
+                    document.getElementById('day-night').textContent = `Time of day: ${weatherData.is_day_time ? 'Day' : 'Night'}`;
+                    document.getElementById('music-mood-display').textContent = `Suggested Music Mood: ${weatherData.music_mood}`;
+                    console.log(music_mood)
+                    // Now, use the music_mood to get song suggestions
+                    const songResponse = await fetch('/get_songs', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `mood=${encodeURIComponent(weatherData.music_mood)}`
+                    });
+
+                    const songData = await songResponse.json();
+
+                    if (songResponse.ok) {
+                        const songList = document.getElementById('song-list');
+                        if (songData.songs && songData.songs.length > 0) {
+                            songData.songs.forEach(song => {
+                                const listItem = document.createElement('li');
+                                // CORRECTED LINE HERE:
+                                listItem.innerHTML = `<a href="${song.url}" target="_blank">${song.title}</a> (by ${song.artist})`;
+                                songList.appendChild(listItem);
+                            });
+                        } else {
+                            songList.innerHTML = '<li>No songs found for this mood.</li>';
+                        }
+                    } else {
+                        errorMessage.textContent = songData.error || 'Failed to fetch song suggestions.';
+                    }
+
+                } else {
+                    errorMessage.textContent = weatherData.error || 'Failed to fetch weather data.';
+                }
+            } catch (error) {
+                errorMessage.textContent = 'An error occurred. Please try again.';
+                console.error('Fetch error:', error);
+            }
+        });
+    </script>
+</body>
+</html>
